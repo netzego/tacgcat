@@ -433,15 +433,27 @@ def pathstr(s):
     """
     """
     s = s.lower()
-    nonascii = re.compile("[^-a-z0-9_\.\ ]")
+
+    s = translate_ascii(s)
+
+    # remove all remaining nonascii characters
+    nonascii = re.compile("[^-a-z0-9_\.\ \(\)]")
     s = nonascii.sub("", s)
+
+    # remove braces
+    rm_braces = re.compile("\(.*\)")
+    s = rm_braces.sub("", s)
+
+    s = s.strip()
+
+    # remove whitspaces
     whitespaces = re.compile("\s+")
     s = whitespaces.sub("_", s)
 
     print(s)
 
 
-def translate_noascii(s):
+def translate_ascii(s):
     """Translate a string to ascii character only.
     """
 
@@ -497,9 +509,20 @@ def translate_noascii(s):
              ord("ĉ"): "c",
              ord("ċ"): "c",
              ord("č"): "c",
+             # u
+             ord("ü"): "ue",
+             ord("ù"): "u",
+             ord("ú"): "u",
+             ord("û"): "u",
+             ord("ů"): "u",
+             ord("ũ"): "u",
+             ord("ũ"): "u",
+             ord("ŭ"): "u",
+             ord("ű"): "u",
+             ord("ų"): "u",
              }
 
-    return s.lower().translate(table)
+    return s.translate(table)
 
 
 if __name__ == "__main__":
