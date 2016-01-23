@@ -12,10 +12,11 @@ import re
 CLEANTAGS = ["ARTIST",
              "ALBUMARTIST",
              "ALBUM",
+             "DISCNUMBER",
              "TRACKNUNMBER",
              "TITLE",
              "BPM",
-             "CATNR",
+             "CATALOGNUMBER",
              "PUBLISHER",
              "LABEL"]
 
