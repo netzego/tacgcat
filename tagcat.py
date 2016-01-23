@@ -8,6 +8,17 @@ import argparse
 import taglib
 
 
+CLEANTAGS = ["ARTIST",
+             "ALBUMARTIST",
+             "ALBUM",
+             "TRACKNUNMBER",
+             "TITLE",
+             "BPM",
+             "CATNR",
+             "PUBLISHER",
+             "LABEL"]
+
+
 def main():
     """This is main, not sparta!
     """
@@ -26,6 +37,9 @@ def main():
 
     elif jmp == "wipeout" or jmp == "wo":
         tc_wipeout(argv)
+
+    elif jmp == "clear" or jmp == "cl":
+        tc_clear(argv)
 
     else:
         raise ValueError
@@ -182,7 +196,7 @@ def print_tags(tags):
 
     s = ""
     for tag in sorted(tags):
-        s += "{0:{1}}: {2}\n".format(tag.lower(), l+1, ", ".join(tags[tag]))
+        s += "{0:{1}}: `{2}`\n".format(tag.lower(), l+1, ", ".join(tags[tag]))
     print(s)
 
 
@@ -326,6 +340,49 @@ def tc_wipeout(argv):
 
     filelist = filewalk(args.files, recursiv=args.recursiv, test=isaudio)
     wipeout_tags(filelist)
+
+
+def clear_tags(ls):
+    """Removes all multiply tag values and strip whitspaces from the first.
+    """
+
+    if not isinstance(ls, list):
+        raise TypeError
+
+    if len(ls) == 0:
+        raise ValueError
+
+    def recursion(index):
+
+        if index == len(ls):
+            return
+
+        af = taglib.File(ls[index])
+        for t in list(af.tags.keys()):
+            if t in CLEANTAGS:
+                af.tags[t] = [af.tags[t][:1][0].strip()]
+            else:
+                del af.tags[t]
+        af.save()
+        af.close()
+
+        return recursion(index+1)
+
+    return recursion(0)
+
+
+def tc_clear(argv):
+    """
+    """
+
+    parser = argparse.ArgumentParser(prog="tagcat [clear|cl]")
+    parser.add_argument("files", metavar="FILE", nargs="+")
+    parser.add_argument("-r", "--recursiv", action="store_true")
+
+    args = parser.parse_args(argv)
+
+    filelist = filewalk(args.files, recursiv=args.recursiv, test=isaudio)
+    clear_tags(filelist)
 
 
 if __name__ == "__main__":
