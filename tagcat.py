@@ -4,7 +4,23 @@
 
 
 import os
+import argparse
 import taglib
+
+
+def main():
+    """This is main!
+    """
+
+    action = os.sys.argv[1]
+    argv = os.sys.argv[2:]
+
+    if action == "list":
+        tc_list(argv)
+    elif action == "wipe":
+        pass
+    else:
+        raise ValueError
 
 
 def filewalk(ls, recursiv=False, test=os.path.isfile):
@@ -113,10 +129,16 @@ def merge_tags(ls):
     """Merges all tags together in one dict.
     """
 
+    if not isinstance(ls, list):
+        raise TypeError("``ls`` is not an instance from ``list``")
+
+    if len(ls) == 0:
+        return {}
+
     def recursion(index, retval, memo):
 
         # basecase
-        if index == len(ls):
+        if index >= len(ls):
             return retval
 
         # do stuff to retval and memo
@@ -145,7 +167,21 @@ def print_tags(tags):
     print(s)
 
 
+def tc_list(argv):
+    """
+    """
+
+    parser = argparse.ArgumentParser(prog="tagcat list")
+    parser.add_argument("files", metavar="FILE", nargs="+")
+    parser.add_argument("-r", "--recursiv", action="store_true")
+    args = parser.parse_args(argv)
+
+    print(args.files)
+    files = filewalk(args.files, recursiv=args.recursiv, test=isaudio)
+    print(files)
+    tags = merge_tags(files)
+    print_tags(tags)
+
+
 if __name__ == "__main__":
-    filelist = filewalk(os.sys.argv[1:], recursiv=True, test=isaudio)
-    mtags = merge_tags(filelist)
-    print_tags(mtags)
+    main()
