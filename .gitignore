@@ -2,3 +2,5 @@
 **/.*~
 **/*~
 testfiles/**
+**/*.pyc
+**/__pycache__
