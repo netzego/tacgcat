@@ -193,7 +193,7 @@ def tc_list(argv):
 
 
 def tc_write(argv):
-    """
+    """Parses arguments from commandline and runs write_tags.
     """
     parser = argparse.ArgumentParser(prog="tagcat [write|wr]")
     parser.add_argument("files", metavar="FILE", nargs="+")
@@ -204,6 +204,11 @@ def tc_write(argv):
     parser.add_argument("-t", "--title")
     parser.add_argument("-n", "--tracknumber")
     parser.add_argument("-l", "--label")
+    parser.add_argument("-b", "--bpm")
+    # parser.add_argument("-c", "--catalognumber")
+    parser.add_argument("-g", "--genre")
+    parser.add_argument("-s", "--style")
+    parser.add_argument("-c", "--comment")
 
     tags = vars(parser.parse_args(argv))
 
