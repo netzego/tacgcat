@@ -25,6 +25,10 @@ def main():
     """This is main, not sparta!
     """
 
+    if len(os.sys.argv) <= 2:
+        help()
+        raise AttributeError
+
     jmp = os.sys.argv[1]
     argv = os.sys.argv[2:]
 
@@ -45,6 +49,14 @@ def main():
 
     else:
         raise ValueError
+
+
+def help():
+    """Prints the main help for tagcat.
+    """
+    s = "usage: tagcat [list|write|swipe|delete|clear|rename] ..."
+
+    print(s)
 
 
 def filewalk(ls, recursiv=False, test=os.path.isfile):
@@ -454,8 +466,15 @@ def pathstr(s):
     print(s)
 
 
-def translate_ascii(s):
-    """Translate a string to ascii character only.
+def translate_ascii(string):
+    """Translate a string to ascii character only (hopefully).
+
+    Args:
+        string: A string to substitute.
+
+    returns:
+        string: A string whitout any non ascii characters.
+
     """
 
     table = {ord("ß"): "sz",
@@ -523,7 +542,7 @@ def translate_ascii(s):
              ord("ų"): "u",
              }
 
-    return s.translate(table)
+    return string.translate(table)
 
 
 if __name__ == "__main__":
