@@ -17,8 +17,13 @@ def main():
 
     if action == "list" or action == "ls":
         tc_list(argv)
+
     elif action == "write" or action == "wr":
         tc_write(argv)
+
+    elif action == "delete" or action == "del":
+        tc_delete(argv)
+
     else:
         raise ValueError
 
@@ -238,6 +243,46 @@ def write_tags(ls, tags):
         return recursion(index+1)
 
     return recursion(0)
+
+
+def del_tags(ls, tags):
+    """Deletes tags form audiofiles.
+    """
+
+    def recursion(index):
+
+        if index == len(ls):
+            return
+
+        af = taglib.File(ls[index])
+        for t in tags:
+            if t.upper() in af.tags:
+                del af.tags[t.upper()]
+        af.save()
+        af.close()
+
+        return recursion(index+1)
+
+    return recursion(0)
+
+
+def tc_delete(argv):
+    """Parses cmd arguments and runs del_tags()
+
+    Usage:
+        tagcat delete -r -t artist album -- testfiles/
+
+    """
+
+    parser = argparse.ArgumentParser(prog="tagcat [delete|del]")
+    parser.add_argument("files", metavar="FILE", nargs="+")
+    parser.add_argument("-r", "--recursiv", action="store_true")
+    parser.add_argument("-t", "--tags", dest="tags", nargs="+")
+
+    args = parser.parse_args(argv)
+
+    filelist = filewalk(args.files, recursiv=args.recursiv, test=isaudio)
+    del_tags(filelist, args.tags)
 
 
 if __name__ == "__main__":
