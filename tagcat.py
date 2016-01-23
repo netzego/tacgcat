@@ -6,6 +6,7 @@
 import os
 import argparse
 import taglib
+import re
 
 
 CLEANTAGS = ["ARTIST",
@@ -383,6 +384,122 @@ def tc_clear(argv):
 
     filelist = filewalk(args.files, recursiv=args.recursiv, test=isaudio)
     clear_tags(filelist)
+
+
+def generate_path(ls):
+    """Generates a new filename and path.
+    """
+
+    if not isinstance(ls, list):
+        raise TypeError
+
+    if len(ls) == 0:
+        raise ValueError
+
+    def recursion(index, retval):
+
+        if index == len(ls):
+            return retval
+
+        # do stuff
+
+        return recursion(index+1, retval)
+
+    return recursion(0, [])
+
+
+def gen_path(fn):
+    """Generates a new filename.
+    """
+
+    if not isinstance(fn, str):
+        raise TypeError
+
+    af = taglib.File(fn)
+
+    try:
+        artist = af.tags["ARTIST"]
+        album = af.tags["ALBUM"]
+        albumartist = af.tags["ALBUMARTIST"]
+        title = af.tags["TITLE"]
+        tracknumber = af.tags["TRACKNUNMBER"]
+    except KeyError:
+        raise ValueError("`{0}` needs more tags")
+
+    af.close()
+
+
+def pathstr(s):
+    """
+    """
+    s = s.lower()
+    nonascii = re.compile("[^-a-z0-9_\.\ ]")
+    s = nonascii.sub("", s)
+    whitespaces = re.compile("\s+")
+    s = whitespaces.sub("_", s)
+
+    print(s)
+
+
+def translate_noascii(s):
+    """Translate a string to ascii character only.
+    """
+
+    table = {ord("ß"): "sz",
+             # a
+             ord("ä"): "ae",
+             ord("æ"): "ae",
+             ord("à"): "a",
+             ord("á"): "a",
+             ord("â"): "a",
+             ord("ã"): "a",
+             ord("å"): "a",
+             # e
+             ord("è"): "e",
+             ord("é"): "e",
+             ord("ê"): "e",
+             ord("ë"): "e",
+             # i
+             ord("ì"): "i",
+             ord("í"): "i",
+             ord("î"): "i",
+             ord("ï"): "i",
+             # n
+             ord("ñ"): "n",
+             ord("ņ"): "n",
+             ord("ň"): "n",
+             ord("ŉ"): "n",
+             ord("ŋ"): "n",
+             # o
+             ord("ö"): "oe",
+             ord("ò"): "o",
+             ord("ó"): "o",
+             ord("ô"): "o",
+             ord("õ"): "o",
+             ord("ø"): "o",
+             ord("õ"): "o",
+             ord("ō"): "o",
+             ord("ő"): "o",
+             ord("ǒ"): "o",
+             ord("ȱ"): "o",
+             # r
+             ord("ŕ"): "r",
+             ord("ŗ"): "r",
+             ord("ř"): "r",
+             # s
+             ord("ś"): "s",
+             ord("ŝ"): "s",
+             ord("ş"): "s",
+             ord("š"): "s",
+             ord("ś"): "s",
+             # c
+             ord("ć"): "c",
+             ord("ĉ"): "c",
+             ord("ċ"): "c",
+             ord("č"): "c",
+             }
+
+    return s.lower().translate(table)
 
 
 if __name__ == "__main__":
