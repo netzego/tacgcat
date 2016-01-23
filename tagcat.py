@@ -118,8 +118,14 @@ def read_tags(fn):
     try:
         afile = taglib.File(fn)
         tags = afile.tags
+        info = {"path": [afile.path],
+                "samplerate": [str(afile.sampleRate)],
+                "lenght": [str(afile.length)],
+                "bitrate": [str(afile.bitrate)],
+                "channels": [str(afile.channels)]}
+        tags.update(info)
         afile.close()
-    except:
+    except OSError:
         tags = {}
 
     return tags
@@ -161,9 +167,14 @@ def merge_tags(ls):
 def print_tags(tags):
     """Prints tags to stdout
     """
+    l = 0
+    for k in tags.keys():
+        if len(k) > l:
+            l = len(k)
+
     s = ""
-    for tag, value in tags.items():
-        s += "{0}: {1}\n".format(tag, ", ".join(value))
+    for tag in sorted(tags):
+        s += "{0:{1}}: {2}\n".format(tag.lower(), l+1, ", ".join(tags[tag]))
     print(s)
 
 
@@ -176,9 +187,7 @@ def tc_list(argv):
     parser.add_argument("-r", "--recursiv", action="store_true")
     args = parser.parse_args(argv)
 
-    print(args.files)
     files = filewalk(args.files, recursiv=args.recursiv, test=isaudio)
-    print(files)
     tags = merge_tags(files)
     print_tags(tags)
 
