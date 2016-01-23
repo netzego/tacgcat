@@ -9,20 +9,23 @@ import taglib
 
 
 def main():
-    """This is main!
+    """This is main, not sparta!
     """
 
-    action = os.sys.argv[1]
+    jmp = os.sys.argv[1]
     argv = os.sys.argv[2:]
 
-    if action == "list" or action == "ls":
+    if jmp == "list" or jmp == "ls":
         tc_list(argv)
 
-    elif action == "write" or action == "wr":
+    elif jmp == "write" or jmp == "wr":
         tc_write(argv)
 
-    elif action == "delete" or action == "del":
+    elif jmp == "delete" or jmp == "del":
         tc_delete(argv)
+
+    elif jmp == "wipeout" or jmp == "wo":
+        tc_wipeout(argv)
 
     else:
         raise ValueError
@@ -283,6 +286,46 @@ def tc_delete(argv):
 
     filelist = filewalk(args.files, recursiv=args.recursiv, test=isaudio)
     del_tags(filelist, args.tags)
+
+
+def wipeout_tags(ls):
+    """Removes all tags from audiofiles.
+    """
+
+    if not isinstance(ls, list):
+        raise TypeError("``ls`` is not an instance of ``list``")
+
+    if len(ls) == 0:
+        return
+
+    def recursion(index):
+
+        if index == len(ls):
+            return
+
+        af = taglib.File(ls[index])
+        af.tags.clear()
+        af.removeUnsupportedProperties(af.unsupported)  # not sure
+        af.save()
+        af.close()
+
+        return recursion(index+1)
+
+    return recursion(0)
+
+
+def tc_wipeout(argv):
+    """Parses cmd arguments and run wipeout_tags.
+    """
+
+    parser = argparse.ArgumentParser(prog="tagcat [wipeout|wo]")
+    parser.add_argument("files", metavar="FILE", nargs="+")
+    parser.add_argument("-r", "--recursiv", action="store_true")
+
+    args = parser.parse_args(argv)
+
+    filelist = filewalk(args.files, recursiv=args.recursiv, test=isaudio)
+    wipeout_tags(filelist)
 
 
 if __name__ == "__main__":
