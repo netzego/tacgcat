@@ -15,10 +15,10 @@ def main():
     action = os.sys.argv[1]
     argv = os.sys.argv[2:]
 
-    if action == "list":
+    if action == "list" or action == "ls":
         tc_list(argv)
-    elif action == "wipe":
-        pass
+    elif action == "write" or action == "wr":
+        tc_write(argv)
     else:
         raise ValueError
 
@@ -182,7 +182,7 @@ def tc_list(argv):
     """
     """
 
-    parser = argparse.ArgumentParser(prog="tagcat list")
+    parser = argparse.ArgumentParser(prog="tagcat [list|ls]")
     parser.add_argument("files", metavar="FILE", nargs="+")
     parser.add_argument("-r", "--recursiv", action="store_true")
     args = parser.parse_args(argv)
@@ -190,6 +190,49 @@ def tc_list(argv):
     files = filewalk(args.files, recursiv=args.recursiv, test=isaudio)
     tags = merge_tags(files)
     print_tags(tags)
+
+
+def tc_write(argv):
+    """
+    """
+    parser = argparse.ArgumentParser(prog="tagcat [write|wr]")
+    parser.add_argument("files", metavar="FILE", nargs="+")
+    parser.add_argument("-r", "--recursiv", action="store_true")
+    parser.add_argument("-a", "--artist")
+    parser.add_argument("-aa", "--albumartist")
+    parser.add_argument("-A", "--album")
+    parser.add_argument("-t", "--title")
+    parser.add_argument("-n", "--tracknumber")
+    parser.add_argument("-l", "--label")
+
+    tags = vars(parser.parse_args(argv))
+
+    recursiv = tags.pop("recursiv")
+    files = filewalk(tags.pop("files"), recursiv=recursiv, test=isaudio)
+
+    write_tags(files, tags)
+
+
+def write_tags(ls, tags):
+    """Writes tags to an audiofile.
+    """
+
+    def recursion(index):
+
+        if index == len(ls):
+            return
+
+        af = taglib.File(ls[index])
+        for t, v in tags.items():
+            if v:
+                af.tags[t.upper()] = [v]
+
+        af.save()
+        af.close()
+
+        return recursion(index+1)
+
+    return recursion(0)
 
 
 if __name__ == "__main__":
