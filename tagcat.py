@@ -21,6 +21,9 @@ CLEANTAGS = ["ARTIST",
              "LABEL"]
 
 
+sdjaskdj = "dasdas"
+
+
 def main():
     """This is main, not sparta!
     """
