@@ -59,6 +59,9 @@ def main():
     elif jmp == "clear" or jmp == "cl":
         tc_clear(argv)
 
+    elif jmp == "rename" or jmp == "ren":
+        tc_rename(argv)
+
     else:
         raise ValueError
 
@@ -411,75 +414,34 @@ def tc_clear(argv):
     clear_tags(filelist)
 
 
-def generate_path(ls):
-    """Generates a new filename and path.
-    """
-
-    if not isinstance(ls, list):
-        raise TypeError
-
-    if len(ls) == 0:
-        raise ValueError
-
-    def recursion(index, retval):
-
-        if index == len(ls):
-            return retval
-
-        # do stuff
-
-        return recursion(index+1, retval)
-
-    return recursion(0, [])
-
-
-def gen_path(fn):
-    """Generates a new filename.
-    """
-
-    if not isinstance(fn, str):
-        raise TypeError
-
-    af = taglib.File(fn)
-
-    try:
-        artist = af.tags["ARTIST"]
-        album = af.tags["ALBUM"]
-        albumartist = af.tags["ALBUMARTIST"]
-        title = af.tags["TITLE"]
-        tracknumber = af.tags["TRACKNUNMBER"]
-    except KeyError:
-        raise ValueError("`{0}` needs more tags")
-
-    af.close()
-
-
-def tagval_mutation(s):
+def tagval_mutation(tag):
     """Mutates the tag value to an filesystem friendly version.
 
     1. translate to lowercase
     2. translate unicode chrs to ascii chrs
-    3. remove all unwanted/unknown chrs ^[a-z0-9-.&]
+    3. remove all unwanted/unknown chrs
     4. strip whitespaces
     5. remove double whitespaces
     6. replaces whitespaces whit underscores
 
     """
 
+    # (0) we only use the first value
+    s = tag[0]
     # (1) translate to lowercase
     s = s.lower()
     # (2) translate unicode chrs
-    s = translate_ascii(s)
+    s = translate_unicode(s)
     # (3)
-    nonascii = re.compile("[^-a-z0-9_\.\ \(\)]")
+    nonascii = re.compile(r"[^-a-z0-9_\.\ \(\)&]")
     s = nonascii.sub("", s)
     # (4) strip whitespaces
     s = s.strip()
     # (5 + 6) remove/replace whitspaces (6., 7.)
-    whitespaces = re.compile("\s+")
+    whitespaces = re.compile(r"\s+")
     s = whitespaces.sub("_", s)
 
-    print(s)
+    return s
 
 
 def translate_unicode(string):
@@ -594,7 +556,7 @@ def samedir(ls):
     return recursion(1)
 
 
-def has_coretags(fh):
+def has_coretags(tags):
     """Test if the file contain all core tags.
 
     Args:
@@ -608,41 +570,21 @@ def has_coretags(fh):
 
     """
 
-    if not isinstance(fh, taglib.File):
+    if not isinstance(tags, dict):
         raise TypeError
 
-    if all(k in fh.tags for k in ("ARTIST",
-                                  "ALBUMARTIST",
-                                  "ALBUM",
-                                  "TITLE",
-                                  "TRACKNUMBER")):
+    if all(k in tags for k in ("ARTIST",
+                               "ALBUMARTIST",
+                               "ALBUM",
+                               "TITLE",
+                               "TRACKNUMBER")):
         return True
 
     return False
 
 
-def read_coretags(fn):
-    """
-    """
-
-    tags = read_tags(fn)
-
-    if not has_coretags(tags):
-        return
-
-    return tags
-
-
 def gen_filename(fn):
     """Generates the file name based on the tag data.
-
-    Description:
-        * open the file with taglib.File()
-        * test for needed tags
-        * read out tracknumber as int
-        * read out totaltracks as int
-        * read out discnumber as int
-        *
 
     """
 
@@ -653,23 +595,23 @@ def gen_filename(fn):
     tags = fh.tags
 
     if not has_coretags(tags):
-        raise ValueError("no coretags")
+        raise ValueError("{0}: `fn`: `{1}` need coretags")
 
-    tracknr = fh.tags["TRACKNUMBER"]
-    disc = fh.tags["DISCNUMBER"]
+    tracknr = int(fh.tags["TRACKNUMBER"][0])
+    disc = fh.tags["DISCNUMBER"] if "DISCNUMBER" in fh.tags else ""
     artist = tagval_mutation(fh.tags["ARTIST"])
     title = tagval_mutation(fh.tags["TITLE"])
     album = tagval_mutation(fh.tags["ALBUM"])
     albumartist = tagval_mutation(fh.tags["ALBUMARTIST"])
     ending = os.path.splitext(fn)[1]
 
-    filename = "{0}-{1}-{2}.{3}".format(tracknr, artist, title, ending)
+    filename = "{0:02d}-{1}-{2}{3}".format(tracknr, artist, title, ending)
     dirname = os.path.join(BASEDIR, albumartist, album, disc)
 
     return os.path.normpath(os.path.join(dirname, filename))
 
 
-def rename(ls):
+def rename(ls dry=False):
     """Renames an audiofile based on its tags.
 
     Args:
@@ -702,13 +644,31 @@ def rename(ls):
         if not os.path.exists(os.path.dirname(dest)):
             os.makedirs(os.path.dirname(dest))
 
-        os.rename(fn, dest)
+        print(fn, " > ", dest)
+
+        if not dry:
+            os.rename(fn, dest)
 
         # the recursion
         return recursion(index+1)
 
     # start recursion and default values
     return recursion(0)
+
+
+def tc_rename(argv):
+    """
+    """
+
+    parser = argparse.ArgumentParser(prog="tagcat [rename|ren]")
+    parser.add_argument("files", metavar="FILE", nargs="+")
+    parser.add_argument("-r", "--recursiv", action="store_true")
+    parser.add_argument("-d", "--dry", action="store_true")
+
+    args = parser.parse_args(argv)
+
+    filelist = filewalk(args.files, recursiv=args.recursiv, test=isaudio)
+    rename(filelist, dry=args.dry)
 
 
 if __name__ == "__main__":
