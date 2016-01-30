@@ -433,7 +433,7 @@ def tagval_mutation(tag):
     # (2) translate unicode chrs
     s = translate_unicode(s)
     # (3)
-    nonascii = re.compile(r"[^-a-z0-9_\.\ \(\)&]")
+    nonascii = re.compile(r"[^a-z0-9_\.\ \(\)&]")
     s = nonascii.sub("", s)
     # (4) strip whitespaces
     s = s.strip()
@@ -611,7 +611,7 @@ def gen_filename(fn):
     return os.path.normpath(os.path.join(dirname, filename))
 
 
-def rename(ls dry=False):
+def rename(ls, dry=False):
     """Renames an audiofile based on its tags.
 
     Args:
@@ -641,13 +641,14 @@ def rename(ls dry=False):
         if os.path.exists(dest):
             raise NotImplementedError
 
-        if not os.path.exists(os.path.dirname(dest)):
-            os.makedirs(os.path.dirname(dest))
+        if not dry:
+
+            if not os.path.exists(os.path.dirname(dest)):
+                os.makedirs(os.path.dirname(dest))
+
+            os.rename(fn, dest)
 
         print(fn, " > ", dest)
-
-        if not dry:
-            os.rename(fn, dest)
 
         # the recursion
         return recursion(index+1)
