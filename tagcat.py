@@ -9,6 +9,7 @@ import taglib
 import re
 
 
+BASEDIR = "/home/music/test"
 CLEANTAGS = ["ARTIST",
              "ALBUMARTIST",
              "ALBUM",
@@ -442,28 +443,64 @@ def gen_path(fn):
     af.close()
 
 
-def pathstr(s):
+def tagname_mutation(s):
+    """Mutates the tag value to an filesystem friendly version.
+
+    1. translate to lowercase
+    2. translate unicode chrs to ascii chrs
+    3. remove all unwanted/unknown chrs ^[a-z0-9-.&]
+    4. strip whitespaces
+    5. remove double whitespaces
+    6. replaces whitespaces whit underscores
+
     """
-    """
+
+    # (1) translate to lowercase
     s = s.lower()
-
+    # (2) translate unicode chrs
     s = translate_ascii(s)
-
-    # remove all remaining nonascii characters
+    # (3)
     nonascii = re.compile("[^-a-z0-9_\.\ \(\)]")
     s = nonascii.sub("", s)
-
-    # remove braces
-    rm_braces = re.compile("\(.*\)")
-    s = rm_braces.sub("", s)
-
+    # (4) strip whitespaces
     s = s.strip()
-
-    # remove whitspaces
+    # (5 + 6) remove/replace whitspaces (6., 7.)
     whitespaces = re.compile("\s+")
     s = whitespaces.sub("_", s)
 
     print(s)
+
+
+def translate_nonaplha(string):
+    """Translate a string to ascii character only (hopefully).
+
+    Args:
+        string: A string to substitute.
+
+    returns:
+        string: A string whitout any non ascii characters.
+
+    """
+
+    table = {ord("~"): "",
+             # a
+             ord("`"): "",
+             ord("@"): "",
+             ord("#"): "",
+             ord("$"): "",
+             ord("%"): "",
+             ord("^"): "",
+             ord("&"): "",
+             ord("*"): "",
+             ord("+"): "",
+             ord(":"): "",
+             ord(";"): "",
+             ord("\""): "ae",
+             ord(">"): "ae",
+             ord("<"): "ae",
+             }
+
+    return string.translate(table)
 
 
 def translate_ascii(string):
@@ -544,6 +581,77 @@ def translate_ascii(string):
 
     return string.translate(table)
 
+
+def samedir(ls):
+    """Test if all files are in the same directorie.
+
+    Args:
+        fl: A list of absolute filenames.
+
+    Returns:
+        bool
+
+    Raises:
+        ...
+
+    """
+
+    if not isinstance(ls, list):
+        raise TypeError
+
+    if len(ls) == 0:
+        raise ValueError
+
+    def recursion(index):
+
+        if index == len(ls) or len(ls) == 1:
+            return True
+
+        if os.path.dirname(ls[index]) != os.path.dirname(ls[0]):
+            return False
+
+        return recursion(index+1)
+
+    return recursion(1)
+
+
+def hastags(af):
+    """Test if the file contain all core tags.
+    """
+
+    if not isinstance(af, taglib.File):
+        raise TypeError
+
+    if all(k in af.tags for k in ("ARTIST",
+                                  "ALBUMARTIST",
+                                  "ALBUM",
+                                  "TITLE",
+                                  "TRACKNUMBER")):
+        return True
+
+    return False
+
+
+def rename(ls):
+    """
+    """
+
+    def recursion(index):
+
+        if index == len(ls):
+            return None
+
+        # stuff
+        fn = ls[index]
+        fh = taglib.File(fn)
+        dest = generate_filename(fn)
+
+
+        os.path.move(fn, dest)
+
+        return recursion(index+1)
+
+    return recursion(0)
 
 if __name__ == "__main__":
     main()
