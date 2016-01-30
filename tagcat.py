@@ -1,6 +1,17 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 # pylint: disable=missing-docstring
+"""tagcat is a kittie who loves audiofiles.
+
+Coretags
+===
+- ARTIST
+- ALBUMARTIST
+- TITLE
+- TRACKNUMBER
+- DISCMUMBER*
+
+"""
 
 
 import os
@@ -443,7 +454,7 @@ def gen_path(fn):
     af.close()
 
 
-def tagname_mutation(s):
+def tagval_mutation(s):
     """Mutates the tag value to an filesystem friendly version.
 
     1. translate to lowercase
@@ -471,39 +482,7 @@ def tagname_mutation(s):
     print(s)
 
 
-def translate_nonaplha(string):
-    """Translate a string to ascii character only (hopefully).
-
-    Args:
-        string: A string to substitute.
-
-    returns:
-        string: A string whitout any non ascii characters.
-
-    """
-
-    table = {ord("~"): "",
-             # a
-             ord("`"): "",
-             ord("@"): "",
-             ord("#"): "",
-             ord("$"): "",
-             ord("%"): "",
-             ord("^"): "",
-             ord("&"): "",
-             ord("*"): "",
-             ord("+"): "",
-             ord(":"): "",
-             ord(";"): "",
-             ord("\""): "ae",
-             ord(">"): "ae",
-             ord("<"): "ae",
-             }
-
-    return string.translate(table)
-
-
-def translate_ascii(string):
+def translate_unicode(string):
     """Translate a string to ascii character only (hopefully).
 
     Args:
@@ -615,14 +594,24 @@ def samedir(ls):
     return recursion(1)
 
 
-def hastags(af):
+def has_coretags(fh):
     """Test if the file contain all core tags.
+
+    Args:
+        fh: A taglib.File instance.
+
+    Returns:
+        bool: Wether the file has all core tags or not.
+
+    Raises:
+        ...
+
     """
 
-    if not isinstance(af, taglib.File):
+    if not isinstance(fh, taglib.File):
         raise TypeError
 
-    if all(k in af.tags for k in ("ARTIST",
+    if all(k in fh.tags for k in ("ARTIST",
                                   "ALBUMARTIST",
                                   "ALBUM",
                                   "TITLE",
@@ -632,26 +621,95 @@ def hastags(af):
     return False
 
 
+def read_coretags(fn):
+    """
+    """
+
+    tags = read_tags(fn)
+
+    if not has_coretags(tags):
+        return
+
+    return tags
+
+
+def gen_filename(fn):
+    """Generates the file name based on the tag data.
+
+    Description:
+        * open the file with taglib.File()
+        * test for needed tags
+        * read out tracknumber as int
+        * read out totaltracks as int
+        * read out discnumber as int
+        *
+
+    """
+
+    if not isinstance(fn, str):
+        raise TypeError
+
+    fh = taglib.File(fn)
+    tags = fh.tags
+
+    if not has_coretags(tags):
+        raise ValueError("no coretags")
+
+    tracknr = fh.tags["TRACKNUMBER"]
+    disc = fh.tags["DISCNUMBER"]
+    artist = tagval_mutation(fh.tags["ARTIST"])
+    title = tagval_mutation(fh.tags["TITLE"])
+    album = tagval_mutation(fh.tags["ALBUM"])
+    albumartist = tagval_mutation(fh.tags["ALBUMARTIST"])
+    ending = os.path.splitext(fn)[1]
+
+    filename = "{0}-{1}-{2}.{3}".format(tracknr, artist, title, ending)
+    dirname = os.path.join(BASEDIR, albumartist, album, disc)
+
+    return os.path.normpath(os.path.join(dirname, filename))
+
+
 def rename(ls):
+    """Renames an audiofile based on its tags.
+
+    Args:
+        ls: A list of filenames.
+
+    Returns:
+        None
+
+    Raises:
+        ...
+
     """
-    """
+
+    if not isinstance(ls, list):
+        raise TypeError
 
     def recursion(index):
 
+        # end recursion
         if index == len(ls):
             return None
 
-        # stuff
+        # do stuff
         fn = ls[index]
-        fh = taglib.File(fn)
-        dest = generate_filename(fn)
+        dest = gen_filename(fn)
 
+        if os.path.exists(dest):
+            raise NotImplementedError
 
-        os.path.move(fn, dest)
+        if not os.path.exists(os.path.dirname(dest)):
+            os.makedirs(os.path.dirname(dest))
 
+        os.rename(fn, dest)
+
+        # the recursion
         return recursion(index+1)
 
+    # start recursion and default values
     return recursion(0)
+
 
 if __name__ == "__main__":
     main()
