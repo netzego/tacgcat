@@ -25,10 +25,14 @@ CLEANTAGS = ["ARTIST",
              "ALBUMARTIST",
              "ALBUM",
              "DISCNUMBER",
+             "DISCTOTAL",
+             "ORGANIZATION",
              "TRACKNUMBER",
+             "TRACKTOTAL",
              "TITLE",
+             "DATE",
              "BPM",
-             "GERNE",
+             "GENRE",
              "STYLE",
              "CATALOGNUMBER",
              "PUBLISHER",
@@ -58,10 +62,10 @@ def main():
     elif jmp == "wipeout" or jmp == "wo":
         tc_wipeout(argv)
 
-    elif jmp == "clear" or jmp == "cl":
+    elif jmp == "cleanup" or jmp == "cl":
         tc_clear(argv)
 
-    elif jmp == "rename" or jmp == "ren":
+    elif jmp == "move" or jmp == "mv":
         tc_rename(argv)
 
     else:
@@ -227,7 +231,7 @@ def print_tags(tags):
 
     s = ""
     for tag in sorted(tags):
-        s += "{0:{1}}: `{2}`\n".format(tag.lower(), l+1, ", ".join(tags[tag]))
+        s += "{0:{1}}: `{2}`\n".format(tag.lower(), l+1, "`, `".join(tags[tag]))
     print(s)
 
 
@@ -257,6 +261,7 @@ def tc_write(argv):
     parser.add_argument("-t", "--title")
     parser.add_argument("-n", "--tracknumber")
     parser.add_argument("-l", "--label")
+    parser.add_argument("-d", "--date")
     parser.add_argument("-b", "--bpm")
     # parser.add_argument("-c", "--catalognumber")
     parser.add_argument("-g", "--genre")
@@ -373,7 +378,7 @@ def tc_wipeout(argv):
     wipeout_tags(filelist)
 
 
-def clear_tags(ls):
+def clear_tags(ls, dry=False):
     """Removes all multiply tag values and strip whitspaces from the first.
     """
 
@@ -393,8 +398,10 @@ def clear_tags(ls):
             if t in CLEANTAGS:
                 af.tags[t] = [af.tags[t][:1][0].strip()]
             else:
+                print("deleting '{0}': '{1}'".format(t, af.tags[t]))
                 del af.tags[t]
-        af.save()
+        if not dry:
+            af.save()
         af.close()
 
         return recursion(index+1)
@@ -409,11 +416,12 @@ def tc_clear(argv):
     parser = argparse.ArgumentParser(prog="tagcat [clear|cl]")
     parser.add_argument("files", metavar="FILE", nargs="+")
     parser.add_argument("-r", "--recursiv", action="store_true")
+    parser.add_argument("-d", "--dry", action="store_true")
 
     args = parser.parse_args(argv)
 
     filelist = filewalk(args.files, recursiv=args.recursiv, test=isaudio)
-    clear_tags(filelist)
+    clear_tags(filelist, dry=args.dry)
 
 
 def tagval_mutation(tag):
@@ -599,8 +607,8 @@ def gen_filename(fn):
     if not has_coretags(tags):
         raise ValueError("{0}: `fn`: `{1}` need coretags")
 
-    tracknr = int(fh.tags["TRACKNUMBER"][0])
-    disc = fh.tags["DISCNUMBER"] if "DISCNUMBER" in fh.tags else ""
+    tracknr = int(fh.tags["TRACKNUMBER"][0].split("/")[0])
+    # disc = fh.tags["DISCNUMBER"] if "DISCNUMBER" in fh.tags else ""
     artist = tagval_mutation(fh.tags["ARTIST"])
     title = tagval_mutation(fh.tags["TITLE"])
     album = tagval_mutation(fh.tags["ALBUM"])
@@ -608,7 +616,7 @@ def gen_filename(fn):
     ending = os.path.splitext(fn)[1]
 
     filename = "{0:02d}-{1}-{2}{3}".format(tracknr, artist, title, ending)
-    dirname = os.path.join(BASEDIR, albumartist, album, disc)
+    dirname = os.path.join(BASEDIR, albumartist, album)
 
     return os.path.normpath(os.path.join(dirname, filename))
 
