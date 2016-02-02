@@ -20,7 +20,7 @@ import taglib
 import re
 
 
-BASEDIR = "/home/music/test"
+BASEDIR = "/home/music"
 CLEANTAGS = ["ARTIST",
              "ALBUMARTIST",
              "ALBUM",
@@ -67,6 +67,9 @@ def main():
 
     elif jmp == "move" or jmp == "mv":
         tc_rename(argv)
+
+    elif jmp == "auto" or jmp == "a":
+        tc_auto(argv)
 
     else:
         raise ValueError
@@ -156,6 +159,35 @@ def isaudio(fn):
         return False
 
     elif not fn.endswith((".mp3", ".MP3", ".flac", ".FLAC")):
+        return False
+
+    return True
+
+
+def isjpg(fn):
+    """Test if `fn` is a valid jpg file.
+
+    Args:
+        fn: A filename.
+
+    Returns:
+        bool: True if `fn` is a audiofile, False otherwise.
+
+    Raises:
+        ValueType: If `fn` is not an instance from `str`.
+
+    """
+
+    if not isinstance(fn, str):
+        raise TypeError("``fn`` is not a ``str``")
+
+    if not os.path.isfile(fn):
+        return False
+
+    elif os.path.isfile(fn) and os.path.islink(fn):
+        return False
+
+    elif not fn.endswith((".jpg", ".JPG", ".jpeg", ".JPEG")):
         return False
 
     return True
@@ -605,7 +637,7 @@ def gen_filename(fn):
     tags = fh.tags
 
     if not has_coretags(tags):
-        raise ValueError("{0}: `fn`: `{1}` need coretags")
+        raise ValueError("`{0}` need coretags".format(fn))
 
     tracknr = int(fh.tags["TRACKNUMBER"][0].split("/")[0])
     # disc = fh.tags["DISCNUMBER"] if "DISCNUMBER" in fh.tags else ""
@@ -680,6 +712,149 @@ def tc_rename(argv):
 
     filelist = filewalk(args.files, recursiv=args.recursiv, test=isaudio)
     rename(filelist, dry=args.dry)
+
+
+def tc_auto(argv):
+    """
+    """
+
+    parser = argparse.ArgumentParser(prog="tagcat [rename|ren]")
+    parser.add_argument("files", metavar="FILE", nargs="+")
+    parser.add_argument("-r", "--recursiv", action="store_true")
+    parser.add_argument("-d", "--dry", action="store_true")
+
+    args = parser.parse_args(argv)
+
+    filelist = filewalk(args.files, recursiv=args.recursiv, test=isaudio)
+
+    # list tags first
+    tags = merge_tags(filelist)
+    print_tags(tags)
+
+    if input("Exit: ") == "y":
+        os.sys.exit(2)
+
+    if input("Set 'ALBUMARTIST': ") == "y":
+        set_albumartist(filelist)
+
+    # chmod
+    chmod(filelist)
+
+    # cleanup
+    clear_tags(filelist, dry=args.dry)
+
+    # cover
+    rename_cover(filelist)
+
+    # rename
+    rename(filelist, dry=True)
+    if input("Rename: ") != "y":
+        os.sys.exit(2)
+    rename(filelist, dry=args.dry)
+
+    # cover
+    pass
+
+
+def chmod(ls):
+    """
+    """
+
+    def recursion(index):
+
+        if index == len(ls):
+            return None
+
+        # do stuff
+        os.chmod(ls[index], mode=0o644)
+
+        # recursion
+        return recursion(index+1)
+
+    return recursion(0)
+
+
+def equal_tags(ls, tag):
+    """Checks if `tag` is equal in all files.
+    """
+
+    if not isinstance(ls, list):
+        raise TypeError
+
+    if not len(ls):
+        raise ValueError
+
+    def recursion(index):
+
+        if index == len(ls):
+            return True
+
+        # do stuff
+        try:
+            if ls[0][tag] != ls[index][tag]:
+                raise KeyError
+        except KeyError:
+            return False
+
+        return recursion(index+1)
+
+    return recursion(1)
+
+
+def has_tags(ls, tag):
+    """
+    """
+
+    if not isinstance(ls, list):
+        raise TypeError
+
+    if not len(ls):
+        raise ValueError("`ls` is empty")
+
+    def recursion(index):
+
+        if index == len(ls):
+            return True
+
+        # do stuff
+        try:
+            if not ls[index][tag]:
+                raise KeyError
+        except KeyError:
+            return False
+
+        return recursion(index+1)
+
+    return recursion(0)
+
+
+def set_albumartist(ls):
+
+    aa = input("{0}: ".format("albumartist".upper()))
+    tags = {"ALBUMARTIST": aa}
+    write_tags(ls, tags)
+
+
+def rename_cover(ls):
+
+    if not samedir(ls):
+        raise ValueError("Files must live in the same directorie")
+
+    jpgs = filewalk([os.path.dirname(ls[0])], recursiv=True, test=isjpg)
+
+    if len(jpgs) == 1:
+
+        dest = os.path.join(os.path.dirname(gen_filename(ls[0])), "cover.jpg")
+
+        if not os.path.exists(os.path.dirname(dest)):
+            os.makedirs(os.path.dirname(dest))
+
+        print("{0} > {1}".format(jpgs[0], dest))
+
+        os.rename(jpgs[0], dest)
+
+    # todo: choose cover image
+    pass
 
 
 if __name__ == "__main__":
