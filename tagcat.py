@@ -20,6 +20,7 @@ import taglib
 import re
 
 
+os.sys.setrecursionlimit(15000)
 BASEDIR = "/home/music"
 CLEANTAGS = ["ARTIST",
              "ALBUMARTIST",
@@ -70,6 +71,9 @@ def main():
 
     elif jmp == "auto" or jmp == "a":
         tc_auto(argv)
+
+    elif jmp == "grep" or jmp == "g":
+        tc_grep(argv)
 
     else:
         raise ValueError
@@ -829,13 +833,16 @@ def has_tags(ls, tag):
 
 
 def set_albumartist(ls):
-
+    """
+    """
     aa = input("{0}: ".format("albumartist".upper()))
     tags = {"ALBUMARTIST": aa}
     write_tags(ls, tags)
 
 
 def rename_cover(ls):
+    """
+    """
 
     if not samedir(ls):
         raise ValueError("Files must live in the same directorie")
@@ -855,6 +862,80 @@ def rename_cover(ls):
 
     # todo: choose cover image
     pass
+
+
+def grep_tags(ls, stags, regexp):
+    """Greps for ...
+
+    Args:
+        ls: A list of filenames.
+        stags: A list of tagfields to search in.
+        regexp: The regular expression.
+
+    Returns:
+        list: A list of filenames.
+
+    Raises:
+        TypeError: If `ls` is not a list
+
+    """
+
+    if not isinstance(ls, list):
+        raise TypeError
+
+    if not isinstance(stags, list):
+        raise TypeError("`stags` must be a list")
+
+    def recursion(index, retval):
+
+        # basecase
+        if index == len(ls):
+            return retval
+
+        # do stuff
+        try:
+            f = taglib.File(ls[index])
+        except OSError:
+            f = None
+            print("Warning: {0}".format(ls[index]))
+
+        if f:
+            r = re.compile(regexp)
+            for t in stags:
+                t = t.upper()
+                if t in f.tags and r.match(f.tags[t][0]):
+                    retval.append(ls[index])
+                    print(ls[index])
+            f.close()
+
+        # the recursion
+        return recursion(index+1, retval)
+
+    # start recusrion and set default values
+    return recursion(0, [])
+
+
+def tc_grep(argv):
+    """
+    """
+
+    parser = argparse.ArgumentParser(prog="tagcat [grep|g]")
+    parser.add_argument("files", metavar="FILE", nargs="+")
+    parser.add_argument("-R", "--recursiv", action="store_true")
+
+    parser.add_argument("-t", "--tags", action="append")
+    parser.add_argument("-r", "--regexp", default="")
+
+    args = parser.parse_args(argv)
+
+    fl = filewalk(args.files, recursiv=args.recursiv, test=isaudio)
+    grep_tags(fl, args.tags, args.regexp)
+
+    # for f in match:
+        # print(f)
+        # # print(f.replace(BASEDIR, "~ "))
+
+
 
 
 if __name__ == "__main__":
