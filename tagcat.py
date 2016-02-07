@@ -11,6 +11,11 @@ Coretags
 - TRACKNUMBER
 - DISCMUMBER*
 
+TODO
+===
+* grep with multi tags, empty value, has tags...
+* rename with artist not albumartist when all artist fields are equal
+* tracknumber 0 ???
 """
 
 
@@ -85,6 +90,26 @@ def help():
     s = "usage: tagcat [list|write|swipe|delete|clear|rename] ..."
 
     print(s)
+
+
+def filewalk_i(ls, recursiv=False, test=os.path.isfile):
+    """
+    """
+
+    retval = []
+
+    for fd in ls:
+        if recursiv:
+            for root, dirs, files in os.walk(fd):
+                for f in files:
+                    if test(os.path.join(root, f)):
+                        retval.append(os.path.join(root, f))
+
+        else:
+            if test(fd):
+                retval.append(fd)
+
+    return retval
 
 
 def filewalk(ls, recursiv=False, test=os.path.isfile):
@@ -280,7 +305,7 @@ def tc_list(argv):
     parser.add_argument("-r", "--recursiv", action="store_true")
     args = parser.parse_args(argv)
 
-    files = filewalk(args.files, recursiv=args.recursiv, test=isaudio)
+    files = filewalk_i(args.files, recursiv=args.recursiv, test=isaudio)
     tags = merge_tags(files)
     print_tags(tags)
 
@@ -886,6 +911,8 @@ def grep_tags(ls, stags, regexp):
     if not isinstance(stags, list):
         raise TypeError("`stags` must be a list")
 
+    r = re.compile(regexp, re.I)
+
     def recursion(index, retval):
 
         # basecase
@@ -900,7 +927,6 @@ def grep_tags(ls, stags, regexp):
             print("Warning: {0}".format(ls[index]))
 
         if f:
-            r = re.compile(regexp)
             for t in stags:
                 t = t.upper()
                 if t in f.tags and r.match(f.tags[t][0]):
@@ -928,7 +954,7 @@ def tc_grep(argv):
 
     args = parser.parse_args(argv)
 
-    fl = filewalk(args.files, recursiv=args.recursiv, test=isaudio)
+    fl = filewalk_i(args.files, recursiv=args.recursiv, test=isaudio)
     grep_tags(fl, args.tags, args.regexp)
 
     # for f in match:
